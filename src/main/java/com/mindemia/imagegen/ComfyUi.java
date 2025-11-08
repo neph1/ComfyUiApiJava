@@ -18,10 +18,13 @@ import org.slf4j.LoggerFactory;
 
 public class ComfyUi {
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     private final String url;
-    private final String generateEndpoint;
+    private final String generateEndpoint = "/prompt";
+    private final String uploadImageEndpoint = "/upload/image";
+    private final String queueEndpoint = "/queue";
+    private final String historyEndpoint = "/history";
     
     private final Logger logger = LoggerFactory.getLogger(ComfyUi.class);
     
@@ -29,7 +32,6 @@ public class ComfyUi {
 
     public ComfyUi(String address, int port) {
         this.url = String.format("http://%s:%s", address, port);
-        this.generateEndpoint = "/prompt";
     }
 
     public String generate(int numberBatches) {
@@ -71,7 +73,7 @@ public class ComfyUi {
     public String uploadImage(String inputImage) {
         try {
             File file = new File(inputImage);
-            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + "/upload/image").toURL().openConnection();
+            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + uploadImageEndpoint).toURL().openConnection();
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
 
@@ -120,7 +122,7 @@ public class ComfyUi {
     public boolean pollQueue(String promptId) {
         logger.info("Polling comfy ", promptId);
         try {
-            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + "/queue").toURL().openConnection();
+            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + queueEndpoint).toURL().openConnection();
             connection.setRequestMethod("GET");
 
             if (connection.getResponseCode() == 200) {
@@ -149,7 +151,7 @@ public class ComfyUi {
 
     public byte[] getHistory(String promptId) {
         try {
-            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + "/history").toURL().openConnection();
+            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + historyEndpoint).toURL().openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Content-Type", "application/json");
 
@@ -194,33 +196,39 @@ public class ComfyUi {
     public void setModel(int nodeId, String model) {
         workflow.getNodeById(nodeId).setInput("ckpt_name", model);
     }
+    
+    public void setLora(int nodeId, String lora) {
+        setLora(nodeId, lora, 1f, 1f);
+    }
+    
+    public void setLora(int nodeId, String lora, float strength, float clipStrength) {
+        Node loraNode = workflow.getNodeById(nodeId);
+        loraNode.setInput("lora_name", lora);
+        loraNode.setInput("strength_model", strength);
+        loraNode.setInput("strength_clip", clipStrength);
+    }
 
-//    private Workflow setSampler(Workflow data, String sampler, double cfg, int seed, int steps, String scheduler) {
-//        Inputs inputs = data.getNode(3).getInputs();
-//        inputs.setSamplerName(sampler.toLowerCase());
-//        inputs.setCfg(cfg);
-//        inputs.setSeed(seed == -1 ? new Random().nextInt() : seed);
-//        inputs.setSteps(steps);
-//        if (scheduler != null && !scheduler.isEmpty()) {
-//            inputs.setScheduler(scheduler);
-//        }
-//        return data;
-//    }
-//
-//    private Workflow setImageSize(Workflow data, int width, int height, int batchSize) {
-//        Inputs inputs = data.getNode(5).getInputs();
-//        inputs.setWidth(width);
-//        inputs.setHeight(height);
-//        inputs.setBatchSize(batchSize);
-//        return data;
-//    }
-//
-//    private Workflow setControlNet(Workflow data, String depthMap, double weight, double guidance, double start, double end) {
-//        Inputs inputs = data.getNode(11).getInputs();
-//        inputs.setImage(depthMap);
-//        inputs.setStrength(weight);
-//        inputs.setStartPercent(start);
-//        inputs.setEndPercent(end);
-//        return data;
-//    }
+    public void setKsampler(int nodeId, long seed, int steps, float cfg, String sampler, String scheduler, float denoise) {
+        Node ksampler = workflow.getNodeById(nodeId);
+        ksampler.setInput("seed", seed);
+        ksampler.setInput("steps", steps);
+        ksampler.setInput("cfg", cfg);
+        ksampler.setInput("sampler_name", sampler);
+        ksampler.setInput("scheduler", scheduler);
+        ksampler.setInput("denoise", denoise);
+    }
+    
+    
+    
+    /**
+     * Use this to set values on any node.
+     * 
+     * @param nodeId
+     * @param key
+     * @param value 
+     */
+    public void setInput(int nodeId, String key, Object value) {
+        workflow.getNodeById(nodeId).setInput(key, value);
+    }
+
 }

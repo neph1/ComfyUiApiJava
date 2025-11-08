@@ -89,4 +89,16 @@ public class ComfyUiTest {
         Node node = loadedWorkflow.getNodeById(6);
         assertNotNull(node);
     }
+    
+        @Test
+    public void testSetLora() {
+        String workflowPath = "lora_workflow.json";
+
+        Workflow loadedWorkflow = comfyUi.loadWorkflow(workflowPath);
+
+        assertNotNull(loadedWorkflow);
+        comfyUi.setLora(11, "test_lora");
+
+        comfyUi.setLora(11, "test_lora", 1f, 1f);
+    }
 }
