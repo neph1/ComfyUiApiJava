@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class HistoryResponse {
     
-    private Map<String, HistoryItem> items;
+    private Map<String, HistoryItem> items = new HashMap<>();
 
     @JsonAnyGetter
     public Map<String, HistoryItem> getOutputs() {
@@ -26,9 +26,6 @@ public class HistoryResponse {
     
     @JsonAnySetter
     public void addItem(String key, HistoryItem output) {
-        if(items == null) {
-            items = new HashMap<>();
-        }
         this.items.put(key, output);
     }
 }

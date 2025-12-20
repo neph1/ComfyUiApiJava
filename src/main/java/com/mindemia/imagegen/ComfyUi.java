@@ -1,18 +1,21 @@
 package com.mindemia.imagegen;
 
 import com.mindemia.imagegen.response.HistoryResponse;
-import com.mindemia.imagegen.response.ResulFile;
+import com.mindemia.imagegen.response.ResultFile;
 import com.mindemia.imagegen.response.QueueResponse;
 import com.mindemia.imagegen.response.Response;
 import com.mindemia.imagegen.response.Output;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mindemia.imagegen.response.HistoryItem;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +28,7 @@ public class ComfyUi {
     private final String uploadImageEndpoint = "/upload/image";
     private final String queueEndpoint = "/queue";
     private final String historyEndpoint = "/history";
+    private final Map<Integer, List<Integer>> bypassedNodes = new HashMap<>();
     
     private final Logger logger = LoggerFactory.getLogger(ComfyUi.class);
     
@@ -78,7 +82,8 @@ public class ComfyUi {
             connection.setDoOutput(true);
 
             try (OutputStream os = connection.getOutputStream()) {
-                os.write(Files.readAllBytes(file.toPath()));
+                String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+                os.write(text.getBytes());
                 os.flush();
             }
 
@@ -157,38 +162,27 @@ public class ComfyUi {
 
             if (connection.getResponseCode() == 200) {
                 HistoryResponse history = objectMapper.readValue(connection.getInputStream(), HistoryResponse.class);
-
-                Collection<Output> outputs = history.getItem(promptId).outputs().values();
+                final HistoryItem historyItem = history.getItem(promptId);
+                if(historyItem == null) {
+                    logger.warn("Error when getting history for {}", promptId);
+                    return null;
+                }
+                Collection<Output> outputs = historyItem.outputs().values();
                 for (Output output : outputs) {
-                    if (output.getImages() != null) {
-                        for (ResulFile image : output.getImages()) {
-                            return downloadFile(image.getFilename(), image.getSubfolder(), image.getType());
+                    if (output.images() != null) {
+                        for (ResultFile image : output.images()) {
+                            return downloadFile(image.filename(), image.subfolder(), image.type());
                         }
+
                     }
+                                            
+                        for(ResultFile gif: output.gifs()) {
+                            return downloadFile(gif.filename(), gif.subfolder(), gif.type());
+                        }
                 }
             }
         } catch (IOException e) {
             logger.warn("Error when getting history.", e);
-        }
-        return null;
-    }
-
-    private byte[] downloadFile(String filename, String subfolder, String folderType) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + "/view?filename=" + filename + "&subfolder=" + subfolder + "&type=" + folderType).toURL().openConnection();
-            connection.setRequestMethod("GET");
-            if (filename.endsWith(".png")) {
-                connection.setRequestProperty("Content-Type", "image/png");
-            } else if (filename.endsWith(".mp4")) {
-                connection.setRequestProperty("Content-Type", "video/mp4");
-            }
-            
-
-            if (connection.getResponseCode() == 200) {
-                return connection.getInputStream().readAllBytes();
-            }
-        } catch (IOException e) {
-            logger.warn("Error when getting image.", e);
         }
         return null;
     }
@@ -218,7 +212,11 @@ public class ComfyUi {
         ksampler.setInput("denoise", denoise);
     }
     
-    
+    public void setEnabled(int nodeId) {
+//        Node node = workflow.getNodeById(nodeId);
+//        
+//        List<Object> inputs = node.getInputs();
+    }
     
     /**
      * Use this to set values on any node.
@@ -229,6 +227,26 @@ public class ComfyUi {
      */
     public void setInput(int nodeId, String key, Object value) {
         workflow.getNodeById(nodeId).setInput(key, value);
+    }
+    
+    private byte[] downloadFile(String filename, String subfolder, String folderType) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + "/view?filename=" + filename + "&subfolder=" + subfolder + "&type=" + folderType).toURL().openConnection();
+            connection.setRequestMethod("GET");
+            if (filename.endsWith(".png")) {
+                connection.setRequestProperty("Content-Type", "image/png");
+            } else if (filename.endsWith(".mp4")) {
+                connection.setRequestProperty("Content-Type", "video/mp4");
+            }
+            
+
+            if (connection.getResponseCode() == 200) {
+                return connection.getInputStream().readAllBytes();
+            }
+        } catch (IOException e) {
+            logger.warn("Error when getting image.", e);
+        }
+        return null;
     }
 
 }
