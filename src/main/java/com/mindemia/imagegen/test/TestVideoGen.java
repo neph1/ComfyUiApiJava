@@ -34,7 +34,11 @@ public class TestVideoGen {
         
         clipEncode.setInput("text", "a rainy cyberpunk city at night. neon signs blink. the camera flies into the picture, past the tall buildings.");
         
-        comfyUi.uploadImage(ClassLoader.getSystemClassLoader().getResource("cyberpunk.jpg").getFile());
+        try {
+            comfyUi.uploadImage(ClassLoader.getSystemClassLoader().getResource("cyberpunk.jpg").getFile());
+        } catch (IOException ex) {
+            Logger.getLogger(TestVideoGen.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         workflow.getNodeByType("LoadImage").setInput("image", "cyberpunk.jpg");
         

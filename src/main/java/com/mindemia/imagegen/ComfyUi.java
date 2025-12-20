@@ -11,10 +11,13 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +61,7 @@ public class ComfyUi {
                 os.flush();
             }
 
-            if (connection.getResponseCode() != 200) {
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 logger.warn("Error", connection.getResponseCode());
                 return null;
             }
@@ -74,28 +77,47 @@ public class ComfyUi {
     }
 
 
-    public String uploadImage(String inputImage) {
-        try {
-            File file = new File(inputImage);
-            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + uploadImageEndpoint).toURL().openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
+    public String uploadImage(String inputImage) throws IOException {
+        String boundary = Long.toHexString(System.currentTimeMillis());
+        String CRLF = "\r\n";
+        HttpURLConnection conn = (HttpURLConnection) URI.create(this.url + uploadImageEndpoint).toURL().openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-            try (OutputStream os = connection.getOutputStream()) {
-                String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-                os.write(text.getBytes());
-                os.flush();
-            }
+        File file = new File(inputImage);
+        String fileName = file.getName();
+        String mimeType = URLConnection.guessContentTypeFromName(fileName);
+        if (mimeType == null) mimeType = "application/octet-stream";
 
-            if (connection.getResponseCode() == 200) {
-                Map<String, String> response = objectMapper.readValue(connection.getInputStream(), Map.class);
-                return response.get("name");
-            } else {
-                logger.warn("Error when uploading image", connection.getResponseCode());
-                return null;
-            }
-        } catch (IOException e) {
-            logger.warn("Error when uploading image", e);
+        try (OutputStream output = conn.getOutputStream();
+             PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8), true)) {
+
+            writer.append("--").append(boundary).append(CRLF);
+            writer.append("Content-Disposition: form-data; name=\"type\"").append(CRLF);
+            writer.append(CRLF);
+            writer.append("input").append(CRLF);
+
+            writer.append("--").append(boundary).append(CRLF);
+            writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(fileName).append("\"").append(CRLF);
+            writer.append("Content-Type: ").append(mimeType).append(CRLF);
+            writer.append(CRLF);
+            writer.flush();
+
+            Files.copy(file.toPath(), output);
+            output.flush();
+
+            writer.append(CRLF);
+            writer.append("--").append(boundary).append("--").append(CRLF);
+            writer.flush();
+        }
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 200) {
+            Map<String, String> response = objectMapper.readValue(conn.getInputStream(), Map.class);
+            return response.get("name");
+        } else {
+            logger.warn("Error when uploading image",responseCode);
             return null;
         }
     }
