@@ -4,7 +4,6 @@
  */
 package com.mindemia.imagegen;
 
-import com.mindemia.imagegen.Workflow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URL;
@@ -39,5 +38,8 @@ public class WorkflowTest {
         assertEquals(7, workflow.getNodes().size());
         assertEquals("CLIPTextEncode", workflow.getNodeById(6).getClassType());
         assertEquals(3, workflow.getNodeByType("KSampler").getId());
+        assertEquals(4, workflow.getNodeByTitle("Load Checkpoint").getId());
+        
     }
+    
 }

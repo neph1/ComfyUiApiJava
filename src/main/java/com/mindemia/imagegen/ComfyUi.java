@@ -7,6 +7,7 @@ import com.mindemia.imagegen.response.Response;
 import com.mindemia.imagegen.response.Output;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindemia.imagegen.response.HistoryItem;
+import com.mindemia.imagegen.response.ResultType;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -16,9 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,19 +120,6 @@ public class ComfyUi {
         }
     }
     
-    public void setTextPrompt(int nodeId, String prompt) {
-        workflow.getNodeById(nodeId).setInput("text", prompt);
-    }
-    
-    public void setOutputSize(int nodeId, int width, int height) {
-        workflow.getNodeById(nodeId).setInput("width", width);
-        workflow.getNodeById(nodeId).setInput("height", height);
-    }
-    
-    public void setImage(int nodeId, String imageName) {
-        workflow.getNodeById(nodeId).setInput("image", imageName);
-    }
-    
     public Workflow loadWorkflow(String workflowPath) {
         try {
             URL source = ClassLoader.getSystemClassLoader().getResource(workflowPath);
@@ -176,7 +161,7 @@ public class ComfyUi {
         return true;
     }
 
-    public byte[] getHistory(String promptId) {
+    public HistoryItem getHistory(String promptId) {
         try {
             HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + historyEndpoint).toURL().openConnection();
             connection.setRequestMethod("GET");
@@ -189,67 +174,43 @@ public class ComfyUi {
                     logger.warn("Error when getting history for {}", promptId);
                     return null;
                 }
-                Collection<Output> outputs = historyItem.outputs().values();
-                for (Output output : outputs) {
-                    if (output.images() != null) {
-                        for (ResultFile image : output.images()) {
-                            return downloadFile(image.filename(), image.subfolder(), image.type());
-                        }
-
-                    }
-                                            
-                        for(ResultFile gif: output.gifs()) {
-                            return downloadFile(gif.filename(), gif.subfolder(), gif.type());
-                        }
-                }
+                return historyItem;
             }
         } catch (IOException e) {
             logger.warn("Error when getting history.", e);
         }
         return null;
     }
+    
+    public byte[] downloadResult(HistoryItem historyItem, ResultType type) {
+        Collection<Output> outputs = historyItem.outputs().values();
+        for (Output output : outputs) {
+            if (type == null || type == ResultType.image && output.images() != null) {
+                for (ResultFile image : output.images()) {
+                    return downloadFile(image.filename(), image.subfolder(), image.type());
+                }
 
-    public void setModel(int nodeId, String model) {
-        workflow.getNodeById(nodeId).setInput("ckpt_name", model);
-    }
-    
-    public void setLora(int nodeId, String lora) {
-        setLora(nodeId, lora, 1f, 1f);
-    }
-    
-    public void setLora(int nodeId, String lora, float strength, float clipStrength) {
-        Node loraNode = workflow.getNodeById(nodeId);
-        loraNode.setInput("lora_name", lora);
-        loraNode.setInput("strength_model", strength);
-        loraNode.setInput("strength_clip", clipStrength);
+            }
+            if (type == null || type == ResultType.gif && output.gifs() != null) {
+                for(ResultFile gif: output.gifs()) {
+                    return downloadFile(gif.filename(), gif.subfolder(), gif.type());
+                }
+            }
+            if (type == null || type == ResultType.latent && output.latents() != null) {
+                for(ResultFile latent: output.latents()) {
+                    return downloadFile(latent.filename(), latent.subfolder(), latent.type());
+                }
+            }
+        }
+        return null;
     }
 
-    public void setKsampler(int nodeId, long seed, int steps, float cfg, String sampler, String scheduler, float denoise) {
-        Node ksampler = workflow.getNodeById(nodeId);
-        ksampler.setInput("seed", seed);
-        ksampler.setInput("steps", steps);
-        ksampler.setInput("cfg", cfg);
-        ksampler.setInput("sampler_name", sampler);
-        ksampler.setInput("scheduler", scheduler);
-        ksampler.setInput("denoise", denoise);
-    }
-    
     public void setEnabled(int nodeId) {
 //        Node node = workflow.getNodeById(nodeId);
 //        
 //        List<Object> inputs = node.getInputs();
     }
     
-    /**
-     * Use this to set values on any node.
-     * 
-     * @param nodeId
-     * @param key
-     * @param value 
-     */
-    public void setInput(int nodeId, String key, Object value) {
-        workflow.getNodeById(nodeId).setInput(key, value);
-    }
     
     private byte[] downloadFile(String filename, String subfolder, String folderType) {
         try {
@@ -259,6 +220,10 @@ public class ComfyUi {
                 connection.setRequestProperty("Content-Type", "image/png");
             } else if (filename.endsWith(".mp4")) {
                 connection.setRequestProperty("Content-Type", "video/mp4");
+            } else if (filename.endsWith(".latent")) {
+                connection.setRequestProperty("Content-Type", "application/octet-stream");
+            } else {
+                logger.warn("Unknown type.");
             }
             
 

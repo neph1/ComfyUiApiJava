@@ -25,6 +25,9 @@ public class Node {
     @JsonProperty("class_type")
     private String classType;
     
+    @JsonProperty("_meta")
+    private Map<String, String> meta;
+    
     public Node() {
         
     }
@@ -43,6 +46,13 @@ public class Node {
 
     public void setClassType(String type) {
         this.classType = type;
+    }
+    
+    public String getTitle() {
+        if(meta != null) {
+            return meta.getOrDefault("title", classType);
+        }
+        return classType;
     }
     
     @JsonProperty("inputs")

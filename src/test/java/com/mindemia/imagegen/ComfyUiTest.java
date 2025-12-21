@@ -1,9 +1,5 @@
 package com.mindemia.imagegen;
 
-import com.mindemia.imagegen.Node;
-import com.mindemia.imagegen.ComfyUi;
-import com.mindemia.imagegen.Workflow;
-import java.util.List;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,7 +26,7 @@ public class ComfyUiTest {
         String prompt = "Test prompt";
 
         // Set the text prompt
-        comfyUi.setTextPrompt(nodeId, prompt);
+        workflow.getNodeById(nodeId).setInput("text", prompt);
 
         // Retrieve the node and check if the prompt is set correctly
         Node node = workflow.getNodeById(nodeId);
@@ -46,7 +42,8 @@ public class ComfyUiTest {
         int height = 512;
 
         // Set the output size
-        comfyUi.setOutputSize(nodeId, width, height);
+        workflow.getNodeById(nodeId).setInput("width", width);
+        workflow.getNodeById(nodeId).setInput("height", height);
 
         // Retrieve the node and check if the size is set correctly
         Node node = workflow.getNodeById(nodeId);
@@ -56,23 +53,6 @@ public class ComfyUiTest {
         assertEquals(width, inputs.get("width"));
         assertEquals(height, inputs.get("height"));
     }
-
-    // TODO: removed load image node from workflow
-//    @Test
-//    public void testSetImage() {
-//        int nodeId = 10;
-//        String imageName = "testImage.png";
-//
-//        // Set the image
-//        comfyUi.setImage(nodeId, imageName);
-//
-//        // Retrieve the node and check if the image is set correctly
-//        Node node = workflow.getNodeById(nodeId);
-//        Map<String, Object> inputs = node.getInputs();
-//
-//        assertNotNull(inputs);
-//        assertEquals(imageName, inputs.get("image"));
-//    }
 
     @Test
     public void testLoadWorkflow() {
@@ -97,8 +77,6 @@ public class ComfyUiTest {
         Workflow loadedWorkflow = comfyUi.loadWorkflow(workflowPath);
 
         assertNotNull(loadedWorkflow);
-        comfyUi.setLora(11, "test_lora");
-
-        comfyUi.setLora(11, "test_lora", 1f, 1f);
+        loadedWorkflow.getNodeById(11).setInput("lora_name", "test_lora");
     }
 }

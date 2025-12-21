@@ -35,6 +35,15 @@ public class Workflow {
         }
         return null;
     }
+    
+    public Node getNodeByTitle(String title) {
+        for(Node node: nodes.values()) {
+            if(node.getTitle().equals(title)) {
+                return node;
+            }
+        }
+        return null;
+    }
         
     @JsonAnySetter
     public void addNode(String key, Node value) {
@@ -55,4 +64,4 @@ public class Workflow {
     public List<Integer> getOutputNodes(int nodeId) {
         return List.of();
     }
-}
+    }

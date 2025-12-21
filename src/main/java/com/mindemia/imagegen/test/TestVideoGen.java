@@ -7,6 +7,8 @@ package com.mindemia.imagegen.test;
 import com.mindemia.imagegen.ComfyUi;
 import com.mindemia.imagegen.Node;
 import com.mindemia.imagegen.Workflow;
+import com.mindemia.imagegen.response.HistoryItem;
+import com.mindemia.imagegen.response.ResultType;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Random;
@@ -57,7 +59,8 @@ public class TestVideoGen {
                 Logger.getLogger(TestVideoGen.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        byte[] imageData = comfyUi.getHistory(promptId);
+        HistoryItem history = comfyUi.getHistory(promptId);
+        byte[] imageData = comfyUi.downloadResult(history, ResultType.gif);
         if (imageData == null) {
             Logger.getLogger(TestVideoGen.class.getName()).log(Level.SEVERE, "Failed to find image data");
             return;
