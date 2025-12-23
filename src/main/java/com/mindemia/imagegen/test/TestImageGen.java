@@ -5,6 +5,10 @@
 package com.mindemia.imagegen.test;
 
 import com.mindemia.imagegen.ComfyUi;
+import com.mindemia.imagegen.Workflow;
+import com.mindemia.imagegen.WorkflowHelper;
+import com.mindemia.imagegen.response.HistoryItem;
+import com.mindemia.imagegen.response.ResultType;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -22,12 +26,13 @@ public class TestImageGen {
 
     public TestImageGen() {
         ComfyUi comfyUi = new ComfyUi("localhost", 8189);
-        comfyUi.loadWorkflow("default_comfy_workflow.json");
-        
-        comfyUi.setOutputSize(5, 512, 384);
-        comfyUi.setTextPrompt(6, "giant sand castle, sunny, beach");
-        comfyUi.setTextPrompt(7, "text, watermark");
+        Workflow workflow = comfyUi.loadWorkflow("default_comfy_workflow.json");
+        WorkflowHelper workflowHelper = new WorkflowHelper(workflow);
 
+        workflowHelper.setOutputSize(5, 512, 384);
+        workflowHelper.setTextPrompt(6, "giant sand castle, sunny, beach");
+        workflowHelper.setTextPrompt(7, "text, watermark");
+        
         String promptId = comfyUi.sendRequest(0);
 
         while (!comfyUi.pollQueue(promptId)) {
@@ -37,12 +42,11 @@ public class TestImageGen {
                 Logger.getLogger(TestImageGen.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        byte[] imageData = comfyUi.getHistory(promptId);
+        HistoryItem history = comfyUi.getHistory(promptId);
+        byte[] imageData = comfyUi.downloadResult(history, ResultType.image);
         if (imageData == null) {
             return;
         }
-        //String imageBytes = Base64.getEncoder().encodeToString(imageData);
-
         try (FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/test.png")) {
            fos.write(imageData);
         } catch (IOException ex) {

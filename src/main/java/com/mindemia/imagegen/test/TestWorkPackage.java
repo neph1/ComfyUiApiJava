@@ -24,22 +24,24 @@ public class TestWorkPackage {
     public TestWorkPackage() {
         ComfyUi comfyUi = new ComfyUi("localhost", 8188);
         Workflow workflow = comfyUi.loadWorkflow("default_comfy_workflow.json");
-       
-        BaseWorkPackage workPackage = new BaseWorkPackage(comfyUi, workflow, null, "test.png", ResultType.image) {
-            @Override
-            protected void prePrompt() {
-                WorkflowHelper workflowHelper = new WorkflowHelper(getWorkflow());
+        
+        BaseWorkPackage workPackage = new BaseWorkPackage.Builder()
+        .comfyUi(comfyUi)
+        .workflow(workflow)
+        .addOutput("test.png", ResultType.image)
+                
+        .onSetup(wf -> {
+            WorkflowHelper workflowHelper = new WorkflowHelper(workflow);
 
-                workflowHelper.setOutputSize(5, 512, 384);
-                workflowHelper.setTextPrompt(6, "giant sand castle, sunny, beach");
-                workflowHelper.setTextPrompt(7, "text, watermark");
-            }
-            
-            @Override
-            protected void postDownload() {
-                assert(new File("test.png").exists());
-            }
-        };
+            workflowHelper.setOutputSize(5, 512, 384);
+            workflowHelper.setTextPrompt(6, "giant sand castle, sunny, beach");
+            workflowHelper.setTextPrompt(7, "text, watermark");
+        })
+        .onPostDownload(() -> {
+            assert(new File("test.png").exists());
+        })
+        .build();
+        
         workPackage.execute();
         
     }
