@@ -1,6 +1,7 @@
 package com.mindemia.imagegen.workpackage;
 
 import com.mindemia.imagegen.ComfyUi;
+import com.mindemia.imagegen.Node;
 import com.mindemia.imagegen.Workflow;
 import com.mindemia.imagegen.response.HistoryItem;
 import com.mindemia.imagegen.response.ResultType;
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -138,6 +140,28 @@ public class BaseWorkPackage {
 
         public Builder addOutput(String fileName, ResultType type) {
             this.outputSpecs.add(new OutputSpec(fileName, type));
+            return this;
+        }
+        
+        public Builder setLora(int nodeId, String loraName) {
+            this.workflow.getNodeById(nodeId).setInput("lora", loraName);
+            return this;
+        }
+        
+        /**
+         * This will remove any forward nodes as it disconnects the node
+         * 
+         * @param nodeId
+         * @return 
+         */
+        public Builder disableLora(int nodeId) {
+            Collection<Node> nodes = this.workflow.getNodes().values();
+            for(Node node: nodes) {
+                Object input = node.getInput("lora");
+                if(input != null && input.equals(nodeId)) {
+                    node.setInput("lora", null);
+                }
+            }
             return this;
         }
 

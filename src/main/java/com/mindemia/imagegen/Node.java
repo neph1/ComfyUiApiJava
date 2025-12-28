@@ -69,6 +69,9 @@ public class Node {
     }
     
     public void setInput(String key, Object value) {
+        if(value == null) {
+            this.inputs.remove(key);
+        }
         this.inputs.put(key, value);
     }
 

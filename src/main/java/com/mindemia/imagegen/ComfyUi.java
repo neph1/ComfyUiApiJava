@@ -10,6 +10,7 @@ import com.mindemia.imagegen.response.HistoryItem;
 import com.mindemia.imagegen.response.ResultType;
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -140,13 +141,14 @@ public class ComfyUi {
             if (connection.getResponseCode() == 200) {
                 QueueResponse response = objectMapper.readValue(connection.getInputStream(), QueueResponse.class);
                 List<List<String>> queuePending = response.getQueuePending();
-                List<List<String>> queueRunning = response.getQueueRunning();
 
                 for (List<String> item : queuePending) {
                     if (item.get(1).equals(promptId)) {
                         return false;
                     }
                 }
+                
+                List<List<String>> queueRunning = response.getQueueRunning();
 
                 for (List<String> item : queueRunning) {
                     if (item.get(1).equals(promptId)) {
@@ -205,12 +207,17 @@ public class ComfyUi {
         return null;
     }
 
-    public void setEnabled(int nodeId) {
-//        Node node = workflow.getNodeById(nodeId);
-//        
-//        List<Object> inputs = node.getInputs();
+    public void deleteFromHistory(String promptId) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) URI.create(this.url + historyEndpoint).toURL().openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+        } catch (MalformedURLException ex) {
+            java.util.logging.Logger.getLogger(ComfyUi.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(ComfyUi.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
-    
     
     private byte[] downloadFile(String filename, String subfolder, String folderType) {
         try {

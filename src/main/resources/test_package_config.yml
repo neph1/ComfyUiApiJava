@@ -1,0 +1,21 @@
+name: "Test config"
+inputs: 
+  - "cyberpunk.png"
+    
+workflow: "default_comfy_workflow.json"
+outputs:
+  - fileName: "test.png"
+    type: image
+
+settings:
+  prompts:
+  - "node" : 6 
+    "text" : "giant sand castle, sunny, beach"
+  negativePrompt: 
+  - "node" : 7 
+    "text" : "text, watermark"
+  width: 512
+  height: 384
+  frames: 1
+  
+  
