@@ -7,7 +7,7 @@ package com.mindemia.imagegen;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -18,7 +18,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Node {
     
-    private Map<String, Object> inputs;
+    private Map<String, Object> inputs = new HashMap<>();
     @JsonIgnore
     private int id;
     
@@ -26,7 +26,7 @@ public class Node {
     private String classType;
     
     @JsonProperty("_meta")
-    private Map<String, String> meta;
+    private Map<String, String> meta = new HashMap<>();
     
     public Node() {
         
