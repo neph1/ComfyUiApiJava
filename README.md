@@ -1,3 +1,5 @@
 This library allows comfyui workflows to be run using the API.
 
-It is not a workflow builder.
+Features:
+* builder pattern configs
+* read configs from yaml
